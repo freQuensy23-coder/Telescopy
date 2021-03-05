@@ -2,9 +2,9 @@ version: '3'
 
 services:
   bot:
-    image: kylmakalle/Telescopy:latest
+    image: kylmakalle/telescopy:latest
     restart: always
-    container_name: tgvkbot
+    container_name: telescopy
     logging:
       options:
         max-size: "10M"
