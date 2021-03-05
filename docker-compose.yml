@@ -2,9 +2,14 @@ version: '3'
 
 services:
   bot:
-    build: .
+    image: kylmakalle/Telescopy:latest
     restart: always
-    volumes:
-    - ".:/usr/src/bot"
-    command: "python3 telesco.py"
+    container_name: tgvkbot
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"
+    restart: always
     env_file: .env
+    labels:
+      com.centurylinklabs.watchtower.enable: 'true'

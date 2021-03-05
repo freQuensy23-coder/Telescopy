@@ -1,6 +1,4 @@
-pyTelegramBotAPI
-# https://github.com/Kylmakalle/pyTelegramBotAPI/archive/feature-BotAPIV3.zip
-requests
+pyTelegramBotAPI==3.7.6
 # ujson
 # cloudconvert
-mixpanel
+mixpanel==4.8.2
