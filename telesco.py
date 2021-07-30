@@ -28,6 +28,7 @@ def lang(message):
 
 
 def check_size(message):
+    return True
     if message.video.file_size >= 8389000:
         bot.send_message(message.chat.id,
                          strings[lang(message)]['size_handler'],
@@ -35,10 +36,16 @@ def check_size(message):
     return message.video.file_size < 8389000
 
 
+MAX_DIMENSION = 640
+
+
 def check_dimensions(message):
     if abs(message.video.height - message.video.width) not in {0, 1}:
         bot.send_message(message.chat.id,
                          strings[lang(message)]['not_square']).wait()
+    if message.video.height > MAX_DIMENSION or message.video.width > MAX_DIMENSION:
+        bot.send_message(message.chat.id,
+                         strings[lang(message)]['dimensions_handler']).wait()
     return abs(message.video.height - message.video.width) in {0, 1}
 
 
@@ -69,7 +76,7 @@ def converting(message):
                 try:
                     action = bot.send_chat_action(message.chat.id, 'record_video_note')
                     videonote = bot.download_file(bot.get_file(message.video.file_id).wait().file_path).wait()
-                    if message.video.height < 640:
+                    if message.video.height < MAX_DIMENSION:
                         sent_note = bot.send_video_note(message.chat.id, videonote, length=message.video.width).wait()
                     else:
                         sent_note = bot.send_video_note(message.chat.id, videonote).wait()
