@@ -17,3 +17,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           snapshot: true
+      - name: Notify Update
+        uses: wei/curl@v1.1.1
+        with:
+          args: -H "Authorization:\ Bearer\ ${{ secrets.WATCHTOWER_TOKEN }}" ${{ secrets.WATCHTOWER_URL }}

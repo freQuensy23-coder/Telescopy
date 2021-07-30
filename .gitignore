@@ -1,5 +1,5 @@
 # Ignore compiled python files
 *.pyc
 .idea
-.env
+*.env
 venv
