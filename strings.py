@@ -2,7 +2,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
                            ' <i>Видеосообщения</i>, просто отправь мне медиафайл.\n\n'
                            'Используй команду /help если у тебя есть вопросы.',
                   'error': 'Ой, что-то пошло не так, попробуй другой файл',
-                  'content_error': 'Я поддерживаю только квадратные Видео!',
+                  'content_error': 'Я поддерживаю только квадратные Видео! (не GIF)',
                   'text_handler': 'Отправь мне квадратное Видео',
                   'video_note_handler': 'Это и так <i>Видеосообщение!</i>',
                   'size_handler': 'Файл слишком большой!\nМаксимальный размер файла *8 MB!*',
@@ -16,7 +16,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
                            ' <i>Video Message</i>, just send me your media.\n\n'
                            'Use /help command if you have any questions.',
                   'error': 'Ooops, something went wrong, try another file',
-                  'content_error': 'I support only square Videos!',
+                  'content_error': 'I support only square Videos! (not GIFs)',
                   'text_handler': 'Send me square Video',
                   'video_note_handler': "It's already a <i>Video message!</i>",
                   'size_handler': 'File is too big!\nMaximum file size is *8 MB*',
@@ -30,7 +30,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
                            ' <i>Videonachricht</i> konvertieren. Sende mir einfach deine Medien.\n\n'
                            'Benutze einfach /help, wenn du irgendwelche Fragen hast.',
                   'error': 'Ooops, irgendwas ist schief gelaufen, probier eine andere Datei',
-                  'content_error': 'Ich unterstütze nur quadratische Videos!',
+                  'content_error': 'Ich unterstütze nur quadratische Videos! (keine GIFs)',
                   'text_handler': 'Sende mir ein quadratisches Video',
                   'video_note_handler': "Es ist schon eine <i>Videonachricht!</i>",
                   'size_handler': 'Die Datei ist zu groß!\nDie Maximumgröße ist *8 MB*',
@@ -44,7 +44,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
                            ' <i>Video Mesaja</i> dönüştürebilirim, sadece medyanı gönder.\n\n'
                            'Herhangi bir sorun varsa, /help komutunu kullan.',
                   'error': 'Ups, bir şeyler ters gitti, başka bir doya dene',
-                  'content_error': 'Sadece kare Videoları destekliyorum!',
+                  'content_error': 'Sadece kare Videoları destekliyorum! (GIF değil)',
                   'text_handler': 'Bana kare Video gönder',
                   'video_note_handler': "Bu zaten bir <i>Video mesaj!</i>",
                   'size_handler': 'Dosya çok büyük!\nMaksimum dosya boyutu *8 MB*',
@@ -59,7 +59,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
 
 استخدم /help الأمر إذا كان لديك أي أسئلة.""",
                   'error': 'عفوًا ، حدث خطأ ما ، جرب ملفًا آخر',
-                  'content_error': 'أنا أدعم فقط أشرطة الفيديو مربع!',
+                  'content_error': 'أنا أدعم فقط أشرطة الفيديو مربع! (لا صور GIF)',
                   'text_handler': 'أرسل لي مربع الفيديو',
                   'video_note_handler': "إنها بالفعل <i>رسالة فيديو</i> !",
                   'size_handler': 'الملف كبير جدًا! \n أقصى حجم للملف هو * 8 ميغابايت *',
@@ -74,7 +74,7 @@ strings = {'ru': {'start': 'Приветствую, {}!\nЯ Telescopy и я ум
 
 اگر سوالی دارید، از دستور /help استفاده کنید.""",
                   'error': 'اووپ، چیزی اشتباه گرفته شد، فایل دیگری را امتحان کنید',
-                  'content_error': 'من فقط از فیلم های مربع پشتیبانی می کنم!',
+                  'content_error': 'من فقط از فیلم های مربع پشتیبانی می کنم! (نه GIF)',
                   'text_handler': 'مربع ویدئو را به من بفرست',
                   'video_note_handler': "این یک پیام <i> ویدیویی است! </i>",
                   'size_handler': 'پرونده خیلی بزرگ است!\nحداکثر اندازه فایل* 8 MB است*',
