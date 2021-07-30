@@ -70,9 +70,15 @@ def converting(message):
                     action = bot.send_chat_action(message.chat.id, 'record_video_note')
                     videonote = bot.download_file(bot.get_file(message.video.file_id).wait().file_path).wait()
                     if message.video.height < 640:
-                        bot.send_video_note(message.chat.id, videonote, length=message.video.height).wait()
+                        sent_note = bot.send_video_note(message.chat.id, videonote, length=message.video.width).wait()
                     else:
-                        bot.send_video_note(message.chat.id, videonote).wait()
+                        sent_note = bot.send_video_note(message.chat.id, videonote).wait()
+                    if sent_note.content_type != 'video_note':
+                        bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
+                        try:
+                            bot.delete_message(sent_note.chat.id, sent_note.message_id).wait()
+                        except:
+                            pass
                     action.wait()
                     if MIXPANEL_TOKEN:
                         mp.track(message.from_user.id, 'convert',
