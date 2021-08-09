@@ -19,6 +19,10 @@ bot = telebot.AsyncTeleBot(token)
 
 available_langs = strings.keys()
 
+MAX_DIMENSION = 640
+MAX_DURATION = 60
+MAX_SIZE = 8389000
+
 
 def lang(message):
     if message.from_user.language_code:
@@ -28,15 +32,19 @@ def lang(message):
 
 
 def check_size(message):
-    return True
-    if message.video.file_size >= 8389000:
+    if message.video.file_size >= MAX_SIZE:
         bot.send_message(message.chat.id,
                          strings[lang(message)]['size_handler'],
                          parse_mode='Markdown').wait()
-    return message.video.file_size < 8389000
+    return message.video.file_size < MAX_SIZE
 
 
-MAX_DIMENSION = 640
+def check_duration(message):
+    if message.video.duration > MAX_DURATION:
+        bot.send_message(message.chat.id,
+                         strings[lang(message)]['duration_handler'],
+                         parse_mode='Markdown').wait()
+    return message.video.file_size <= MAX_DURATION
 
 
 def check_dimensions(message):
@@ -68,38 +76,36 @@ def welcome(message):
     task.wait()
 
 
-@bot.message_handler(content_types=['video', 'document'])
+@bot.message_handler(content_types=['video', 'document', 'animation'])
 def converting(message):
     if message.content_type is 'video':
-        if check_size(message):
-            if check_dimensions(message):
-                try:
-                    action = bot.send_chat_action(message.chat.id, 'record_video_note')
-                    videonote = bot.download_file(bot.get_file(message.video.file_id).wait().file_path).wait()
-                    if message.video.height < MAX_DIMENSION:
-                        sent_note = bot.send_video_note(message.chat.id, videonote, length=message.video.width).wait()
-                    else:
-                        sent_note = bot.send_video_note(message.chat.id, videonote).wait()
-                    if sent_note.content_type != 'video_note':
-                        bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
-                        try:
-                            bot.delete_message(sent_note.chat.id, sent_note.message_id).wait()
-                        except:
-                            pass
-                    action.wait()
-                    if MIXPANEL_TOKEN:
-                        mp.track(message.from_user.id, 'convert',
-                                 properties={'language': message.from_user.language_code})
-                except Exception as e:
-                    # bot.send_message(me, '`{}`'.format(e), parse_mode='Markdown').wait()
-                    # bot.forward_message(me, message.chat.id, message.message_id).wait()  # some debug info
+        if check_size(message) and check_dimensions(message) and check_duration(message):
+            try:
+                action = bot.send_chat_action(message.chat.id, 'record_video_note')
+                videonote = bot.download_file(bot.get_file(message.video.file_id).wait().file_path).wait()
+                if message.video.height < MAX_DIMENSION:
+                    sent_note = bot.send_video_note(message.chat.id, videonote, length=message.video.width).wait()
+                else:
+                    sent_note = bot.send_video_note(message.chat.id, videonote).wait()
+                if sent_note.content_type != 'video_note':
                     bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
-                    if MIXPANEL_TOKEN:
-                        mp.track(message.from_user.id, 'error', properties={'error': str(e)})
+                    try:
+                        bot.delete_message(sent_note.chat.id, sent_note.message_id).wait()
+                    except:
+                        pass
+                action.wait()
+                if MIXPANEL_TOKEN:
+                    mp.track(message.from_user.id, 'convert',
+                             properties={'language': message.from_user.language_code})
+            except Exception as e:
+                # bot.send_message(me, '`{}`'.format(e), parse_mode='Markdown').wait()
+                # bot.forward_message(me, message.chat.id, message.message_id).wait()  # some debug info
+                bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
+                if MIXPANEL_TOKEN:
+                    mp.track(message.from_user.id, 'error', properties={'error': str(e)})
         return
-    elif message.content_type is 'document' and \
-            (message.document.mime_type == 'image/gif' or
-             message.document.mime_type == 'video/mp4'):
+    elif (message.content_type is 'document' and (message.document.mime_type == 'image/gif' or
+                                                  message.document.mime_type == 'video/mp4')) or message.content_type is 'animation':
         bot.send_message(message.chat.id, strings[lang(message)]['content_error'])
         return
         """if check_size(message):
