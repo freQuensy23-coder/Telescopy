@@ -44,7 +44,7 @@ def check_duration(message):
         bot.send_message(message.chat.id,
                          strings[lang(message)]['duration_handler'],
                          parse_mode='Markdown').wait()
-    return message.video.file_size <= MAX_DURATION
+    return message.video.duration <= MAX_DURATION
 
 
 def check_dimensions(message):
