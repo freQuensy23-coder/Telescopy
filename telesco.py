@@ -1,23 +1,48 @@
 # -*- coding: utf-8 -*-
 import os
+import time
+from functools import lru_cache
 from io import BytesIO
 
-# import cloudconvert
-# import ujson
 import requests
 import telebot
-from mixpanel import Mixpanel  # from botan import track
+from mixpanel import Mixpanel
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from strings import strings
 
 token = os.environ['TELEGRAM_TOKEN']
 MIXPANEL_TOKEN = os.environ.get('MIXPANEL_TOKEN')
+CONNECTED_CHATS_JSON_URL = os.environ.get('CONNECTED_CHATS_JSON_URL')
+
 if MIXPANEL_TOKEN:
     mp = Mixpanel(MIXPANEL_TOKEN)
+
+if CONNECTED_CHATS_JSON_URL:
+    connected_chats = requests.get(CONNECTED_CHATS_JSON_URL).json()
+else:
+    connected_chats = {}
 
 bot = telebot.AsyncTeleBot(token)
 
 available_langs = strings.keys()
+
+CHAT_TITLES_CACHE = {}
+
+
+@lru_cache()
+def get_chat_title(chat_id, ttl_hash=None):
+    del ttl_hash  # to emphasize we don't use it and to shut pylint up
+    try:
+        return bot.get_chat(chat_id).wait().title
+    except:
+        return None
+
+
+def get_ttl_hash(seconds=3600):
+    """Return the same value withing `seconds` time period"""
+    return round(time.time() / seconds)
+
 
 MAX_DIMENSION = 640
 MAX_DURATION = 60
@@ -57,6 +82,34 @@ def check_dimensions(message):
     return abs(message.video.height - message.video.width) in {0, 1}
 
 
+def get_kb(user_id):
+    user_connected_chats = connected_chats.get(str(user_id))
+    if user_connected_chats:
+        kb = InlineKeyboardMarkup()
+        for chat_id in user_connected_chats["chats"]:
+            chat_name = get_chat_title(chat_id, get_ttl_hash()) or str(chat_id)
+            kb.add(InlineKeyboardButton(chat_name, callback_data='send-{}'.format(chat_id)))
+        return kb
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_buttons(call):
+    if call.message and call.data:
+        if call.data.startswith('send-'):
+            send_chat_id = call.data.replace('send-', '')
+            data = call.message.video_note.file_id
+            try:
+                m = bot.send_video_note(chat_id=send_chat_id, data=data).wait()
+            except Exception as e:
+                print('Error sending videonote', e)
+                m = None
+            # TODO: Localization
+            if isinstance(m, telebot.types.Message):
+                bot.answer_callback_query(call.id, 'Отправлено ✅')
+            else:
+                bot.answer_callback_query(call.id, 'Ошибка ❌')
+
+
 @bot.message_handler(commands=['start'])
 def welcome(message):
     task = bot.send_message(message.chat.id, strings[lang(message)]['start'].format(
@@ -93,6 +146,11 @@ def converting(message):
                         bot.delete_message(sent_note.chat.id, sent_note.message_id).wait()
                     except:
                         pass
+                else:
+                    kb = get_kb(message.from_user.id)
+                    if kb:
+                        bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=sent_note.message_id,
+                                                      reply_markup=kb)
                 action.wait()
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'convert',
@@ -108,69 +166,10 @@ def converting(message):
                                                   message.document.mime_type == 'video/mp4')) or message.content_type is 'animation':
         bot.send_message(message.chat.id, strings[lang(message)]['content_error'])
         return
-        """if check_size(message):
-            try:
-                videonote = bot.download_file((((bot.get_file(message.document.file_id)).wait()).file_path)).wait()
-                bot.send_chat_action(message.chat.id, 'record_video_note').wait()
-                bot.send_video_note(message.chat.id, videonote).wait()
-                track(botan_token, message.from_user.id, message, 'Convert')
-            except:
-                bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
-                track(botan_token, message.from_user.id, message, 'Error')
-        else:
-            return"""
 
     elif (message.content_type is 'document' and
           message.document.mime_type == 'video/webm'):
-        if False:  # if str(message.from_user.id) == me:
-            """
-            if check_size(message):
-                try:
-                    status = bot.send_message(
-                        message.chat.id, 
-                        strings[lang(message)]['downloading'],
-                        parse_mode='HTML').wait()
-                    api = cloudconvert.Api(cloud_convert_token)
-                    process = api.convert({
-                        'inputformat': 'webm',
-                        'outputformat': 'mp4',
-                        'input': 'download',
-                        'save': True,
-                        'file': 'https://api.telegram.org/file/bot{}/{}'.format(token,
-                         (((bot.get_file(message.document.file_id)).wait()).file_path))
-                    })
-                    bot.edit_message_text(message.chat.id, strings[lang(message)]['converting'].format(0),
-                                          status.chat.id,
-                                          status.message_id,
-                                          parse_mode='HTML').wait()
-                    while True:
-                        r = requests.get('https:{}'.format(process['url']))
-                        percentage = ujson.loads(r.text)['percent']
-                        bot.edit_message_text(strings[lang(message)]['converting'].format(percentage), status.chat.id,
-                                              status.message_id,
-                                              parse_mode='HTML').wait()
-                        if percentage == 100:
-                            break
-                    bot.edit_message_text(strings[lang(message)]['uploading'].format(percentage), status.chat.id,
-                                          status.message_id,
-                                          parse_mode='HTML').wait()
-                    process.wait()
-                    bot.send_chat_action(message.chat.id, 'record_video_note').wait()
-                    file = '{}_{}.mp4'.format(message.from_user.id, message.message_id)
-                    process.download(file)
-                    videonote = open(file, 'rb')
-                    bot.delete_message(status.chat.id, status.message_id).wait()
-                    bot.send_video_note(message.chat.id, videonote).wait()
-                    videonote.close()
-                    os.remove(file)
-                except:
-                    bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
-                    # track(botan_token, message.from_user.id, message, 'Error')
-            else:
-                return
-            """
-        else:
-            bot.send_message(message.chat.id, strings[lang(message)]['webm'], parse_mode='HTML').wait()
+        bot.send_message(message.chat.id, strings[lang(message)]['webm'], parse_mode='HTML').wait()
 
     else:
         bot.send_message(message.chat.id, strings[lang(message)]['content_error']).wait()
