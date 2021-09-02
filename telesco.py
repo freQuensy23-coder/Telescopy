@@ -18,16 +18,18 @@ CONNECTED_CHATS_JSON_URL = os.environ.get('CONNECTED_CHATS_JSON_URL')
 if MIXPANEL_TOKEN:
     mp = Mixpanel(MIXPANEL_TOKEN)
 
-if CONNECTED_CHATS_JSON_URL:
-    connected_chats = requests.get(CONNECTED_CHATS_JSON_URL).json()
-else:
-    connected_chats = {}
+@lru_cache()
+def get_connected_chats(ttl_hash=None) -> dict:
+    del ttl_hash  # to emphasize we don't use it and to shut pylint up
+    if CONNECTED_CHATS_JSON_URL:
+        connected_chats = requests.get(CONNECTED_CHATS_JSON_URL).json()
+    else:
+        connected_chats = {}
+    return connected_chats
 
 bot = telebot.AsyncTeleBot(token)
 
 available_langs = strings.keys()
-
-CHAT_TITLES_CACHE = {}
 
 
 @lru_cache()
@@ -83,7 +85,7 @@ def check_dimensions(message):
 
 
 def get_kb(user_id):
-    user_connected_chats = connected_chats.get(str(user_id))
+    user_connected_chats = get_connected_chats(get_ttl_hash()).get(str(user_id))
     if user_connected_chats:
         kb = InlineKeyboardMarkup()
         for chat_id in user_connected_chats["chats"]:
