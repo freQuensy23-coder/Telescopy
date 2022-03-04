@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
+import logging
 import os
 import time
 from functools import lru_cache
-from io import BytesIO
 
 import requests
-import telebot
+from aiogram import Bot, Dispatcher, executor
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from mixpanel import Mixpanel
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from strings import strings
 
@@ -18,6 +17,7 @@ CONNECTED_CHATS_JSON_URL = os.environ.get('CONNECTED_CHATS_JSON_URL')
 if MIXPANEL_TOKEN:
     mp = Mixpanel(MIXPANEL_TOKEN)
 
+
 @lru_cache()
 def get_connected_chats(ttl_hash=None) -> dict:
     del ttl_hash  # to emphasize we don't use it and to shut pylint up
@@ -27,16 +27,22 @@ def get_connected_chats(ttl_hash=None) -> dict:
         connected_chats = {}
     return connected_chats
 
-bot = telebot.AsyncTeleBot(token)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Initialize bot and dispatcher
+bot = Bot(token=token)
+dp = Dispatcher(bot)
 
 available_langs = strings.keys()
 
 
 @lru_cache()
-def get_chat_title(chat_id, ttl_hash=None):
+async def get_chat_title(chat_id, ttl_hash=None):
     del ttl_hash  # to emphasize we don't use it and to shut pylint up
     try:
-        return bot.get_chat(chat_id).wait().title
+        return (await bot.get_chat(chat_id)).title
     except:
         return None
 
@@ -58,142 +64,138 @@ def lang(message):
     return 'en'
 
 
-def check_size(message):
+async def check_size(message):
     if message.video.file_size >= MAX_SIZE:
-        bot.send_message(message.chat.id,
-                         strings[lang(message)]['size_handler'],
-                         parse_mode='Markdown').wait()
+        await bot.send_message(message.chat.id,
+                               strings[lang(message)]['size_handler'],
+                               parse_mode='Markdown')
     return message.video.file_size < MAX_SIZE
 
 
-def check_duration(message):
+async def check_duration(message):
     if message.video.duration > MAX_DURATION:
-        bot.send_message(message.chat.id,
-                         strings[lang(message)]['duration_handler'],
-                         parse_mode='Markdown').wait()
+        await bot.send_message(message.chat.id,
+                               strings[lang(message)]['duration_handler'],
+                               parse_mode='Markdown')
     return message.video.duration <= MAX_DURATION
 
 
-def check_dimensions(message):
+async def check_dimensions(message):
     if abs(message.video.height - message.video.width) not in {0, 1}:
-        bot.send_message(message.chat.id,
-                         strings[lang(message)]['not_square']).wait()
+        await bot.send_message(message.chat.id,
+                               strings[lang(message)]['not_square'])
     if message.video.height > MAX_DIMENSION or message.video.width > MAX_DIMENSION:
-        bot.send_message(message.chat.id,
-                         strings[lang(message)]['dimensions_handler']).wait()
+        await bot.send_message(message.chat.id,
+                               strings[lang(message)]['dimensions_handler'])
     return abs(message.video.height - message.video.width) in {0, 1}
 
 
-def get_kb(user_id):
+async def get_kb(user_id):
     user_connected_chats = get_connected_chats(get_ttl_hash()).get(str(user_id))
     if user_connected_chats:
         kb = InlineKeyboardMarkup()
         for chat_id in user_connected_chats["chats"]:
-            chat_name = get_chat_title(chat_id, get_ttl_hash()) or str(chat_id)
+            chat_name = await get_chat_title(chat_id, get_ttl_hash()) or str(chat_id)
             kb.add(InlineKeyboardButton(chat_name, callback_data='send-{}'.format(chat_id)))
         return kb
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_buttons(call):
+@dp.callback_query_handler(lambda call: True)
+async def callback_buttons(call):
     if call.message and call.data:
         if call.data.startswith('send-'):
             send_chat_id = call.data.replace('send-', '')
             data = call.message.video_note.file_id
             try:
-                m = bot.send_video_note(chat_id=send_chat_id, data=data).wait()
+                m = await bot.send_video_note(chat_id=send_chat_id, video_note=data)
             except Exception as e:
                 print('Error sending videonote', e)
                 m = None
             # TODO: Localization
-            if isinstance(m, telebot.types.Message):
-                bot.answer_callback_query(call.id, 'Отправлено ✅')
+            if isinstance(m, Message):
+                await bot.answer_callback_query(call.id, 'Отправлено ✅')
             else:
-                bot.answer_callback_query(call.id, 'Ошибка ❌')
+                await bot.answer_callback_query(call.id, 'Ошибка ❌')
 
 
-@bot.message_handler(commands=['start'])
-def welcome(message):
-    task = bot.send_message(message.chat.id, strings[lang(message)]['start'].format(
+@dp.message_handler(commands=['start'])
+async def welcome(message):
+    await bot.send_message(message.chat.id, strings[lang(message)]['start'].format(
         message.from_user.first_name, 'https://telegram.org/update'),
-                            parse_mode='HTML', disable_web_page_preview=True)
+                           parse_mode='HTML', disable_web_page_preview=True)
     if MIXPANEL_TOKEN:
         mp.track(message.from_user.id, 'start', properties={'language': message.from_user.language_code})
-    task.wait()
 
 
-@bot.message_handler(commands=['help'])
-def welcome(message):
-    task = bot.send_message(message.chat.id, strings[lang(message)]['help'],
-                            parse_mode='HTML', disable_web_page_preview=False)
+@dp.message_handler(commands=['help'])
+async def welcome(message):
+    await bot.send_message(message.chat.id, strings[lang(message)]['help'],
+                           parse_mode='HTML', disable_web_page_preview=False)
     if MIXPANEL_TOKEN:
         mp.track(message.from_user.id, 'help', properties={'language': message.from_user.language_code})
-    task.wait()
 
 
-@bot.message_handler(content_types=['video', 'document', 'animation'])
-def converting(message):
-    if message.content_type is 'video':
-        if check_size(message) and check_dimensions(message) and check_duration(message):
+@dp.message_handler(content_types=['video', 'document', 'animation'])
+async def converting(message):
+    if message.content_type == 'video':
+        if await check_size(message) and await check_dimensions(message) and await check_duration(message):
             try:
-                action = bot.send_chat_action(message.chat.id, 'record_video_note')
-                videonote = bot.download_file(bot.get_file(message.video.file_id).wait().file_path).wait()
+                await bot.send_chat_action(message.chat.id, 'record_video_note')
+                videonote = await bot.download_file_by_id(message.video.file_id)
                 if message.video.height < MAX_DIMENSION:
-                    sent_note = bot.send_video_note(message.chat.id, videonote, length=message.video.width).wait()
+                    sent_note = await bot.send_video_note(message.chat.id, videonote, length=message.video.width)
                 else:
-                    sent_note = bot.send_video_note(message.chat.id, videonote).wait()
+                    sent_note = await bot.send_video_note(message.chat.id, videonote)
                 if sent_note.content_type != 'video_note':
-                    bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
+                    await bot.send_message(message.chat.id, strings[lang(message)]['error'])
                     try:
-                        bot.delete_message(sent_note.chat.id, sent_note.message_id).wait()
+                        await bot.delete_message(sent_note.chat.id, sent_note.message_id)
                     except:
                         pass
                 else:
-                    kb = get_kb(message.from_user.id)
+                    kb = await get_kb(message.from_user.id)
                     if kb:
-                        bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=sent_note.message_id,
-                                                      reply_markup=kb)
-                action.wait()
+                        await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=sent_note.message_id,
+                                                            reply_markup=kb)
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'convert',
                              properties={'language': message.from_user.language_code})
             except Exception as e:
                 # bot.send_message(me, '`{}`'.format(e), parse_mode='Markdown').wait()
                 # bot.forward_message(me, message.chat.id, message.message_id).wait()  # some debug info
-                bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
+                await bot.send_message(message.chat.id, strings[lang(message)]['error'])
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'error', properties={'error': str(e)})
         return
-    elif (message.content_type is 'document' and (message.document.mime_type == 'image/gif' or
-                                                  message.document.mime_type == 'video/mp4')) or message.content_type is 'animation':
-        bot.send_message(message.chat.id, strings[lang(message)]['content_error'])
+    elif (message.content_type == 'document' and (message.document.mime_type == 'image/gif' or
+                                                  message.document.mime_type == 'video/mp4')) or message.content_type == 'animation':
+        await bot.send_message(message.chat.id, strings[lang(message)]['content_error'])
         return
 
-    elif (message.content_type is 'document' and
+    elif (message.content_type == 'document' and
           message.document.mime_type == 'video/webm'):
-        bot.send_message(message.chat.id, strings[lang(message)]['webm'], parse_mode='HTML').wait()
+        await bot.send_message(message.chat.id, strings[lang(message)]['webm'], parse_mode='HTML')
 
     else:
-        bot.send_message(message.chat.id, strings[lang(message)]['content_error']).wait()
+        await bot.send_message(message.chat.id, strings[lang(message)]['content_error'])
 
 
-@bot.message_handler(content_types=['text'])
-def text_handler(message):
-    if message.content_type is 'text' and message.text != '/start' and message.text != '/help':
-        bot.send_message(message.chat.id, strings[lang(message)]['text_handler']).wait()
+@dp.message_handler(content_types=['text'])
+async def text_handler(message):
+    if message.content_type == 'text' and message.text != '/start' and message.text != '/help':
+        await bot.send_message(message.chat.id, strings[lang(message)]['text_handler'])
 
 
-@bot.message_handler(content_types=['video_note'])
-def video_note_handler(message):
-    bot.send_chat_action(message.chat.id, 'upload_video').wait()
+@dp.message_handler(content_types=['video_note'])
+async def video_note_handler(message):
+    await bot.send_chat_action(message.chat.id, 'upload_video')
     try:
-        file_url = bot.get_file_url(message.video_note.file_id)
-        video_content = requests.get(file_url).content
-        bot.send_video(message.chat.id, BytesIO(video_content)).wait()
+        await bot.send_video(message.chat.id, await bot.download_file_by_id(message.video_note.file_id))
     except Exception as e:
-        bot.send_message(message.chat.id, strings[lang(message)]['error']).wait()
+        await bot.send_message(message.chat.id, strings[lang(message)]['error'])
         if MIXPANEL_TOKEN:
             mp.track(message.from_user.id, 'error', properties={'error': str(e)})
 
 
-bot.polling(none_stop=True)
+if __name__ == '__main__':
+    executor.start_polling(dp)

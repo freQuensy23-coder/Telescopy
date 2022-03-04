@@ -1,4 +1,4 @@
-pyTelegramBotAPI==3.7.6
+aiogram==2.19
 # ujson
 # cloudconvert
 mixpanel==4.8.2
