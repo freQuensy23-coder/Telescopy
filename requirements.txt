@@ -1,4 +1,5 @@
 aiogram==2.19
+requests==2.25.1
 # ujson
 # cloudconvert
 mixpanel==4.8.2
