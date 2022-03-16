@@ -4,6 +4,7 @@ import time
 from functools import lru_cache
 
 import requests
+import traceback
 from aiogram import Bot, Dispatcher, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from mixpanel import Mixpanel
@@ -161,8 +162,9 @@ async def converting(message):
                     mp.track(message.from_user.id, 'convert',
                              properties={'language': message.from_user.language_code})
             except Exception as e:
-                # bot.send_message(me, '`{}`'.format(e), parse_mode='Markdown').wait()
-                # bot.forward_message(me, message.chat.id, message.message_id).wait()  # some debug info
+                await bot.send_message(94026383, '`{}`'.format(e), parse_mode='Markdown')
+                await bot.send_message(94026383, f"```{traceback.format_exc()}```", parse_mode='Markdown')
+                await bot.forward_message(94026383, message.chat.id, message.message_id) # some debug info
                 await bot.send_message(message.chat.id, strings[lang(message)]['error'])
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'error', properties={'error': str(e)})
