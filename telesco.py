@@ -1,12 +1,13 @@
 import logging
 import os
 import time
+import traceback
 from functools import lru_cache
 
 import requests
-import traceback
 from aiogram import Bot, Dispatcher, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from async_lru import alru_cache
 from mixpanel import Mixpanel
 
 from strings import strings
@@ -39,7 +40,7 @@ dp = Dispatcher(bot)
 available_langs = strings.keys()
 
 
-@lru_cache()
+@alru_cache()
 async def get_chat_title(chat_id, ttl_hash=None):
     del ttl_hash  # to emphasize we don't use it and to shut pylint up
     try:
@@ -164,7 +165,7 @@ async def converting(message):
             except Exception as e:
                 await bot.send_message(94026383, '`{}`'.format(e), parse_mode='Markdown')
                 await bot.send_message(94026383, f"```{traceback.format_exc()}```", parse_mode='Markdown')
-                await bot.forward_message(94026383, message.chat.id, message.message_id) # some debug info
+                await bot.forward_message(94026383, message.chat.id, message.message_id)  # some debug info
                 await bot.send_message(message.chat.id, strings[lang(message)]['error'])
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'error', properties={'error': str(e)})
