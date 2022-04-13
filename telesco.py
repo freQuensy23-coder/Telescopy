@@ -163,10 +163,10 @@ async def converting(message):
                     mp.track(message.from_user.id, 'convert',
                              properties={'language': message.from_user.language_code})
             except Exception as e:
-                await bot.send_message(94026383, '`{}`'.format(e), parse_mode='Markdown')
-                await bot.send_message(94026383, f"```{traceback.format_exc()}```", parse_mode='Markdown')
-                await bot.forward_message(94026383, message.chat.id, message.message_id)  # some debug info
-                await bot.send_message(message.chat.id, strings[lang(message)]['error'])
+#                 await bot.send_message(94026383, '`{}`'.format(e), parse_mode='Markdown')
+#                 await bot.send_message(94026383, f"```{traceback.format_exc()}```", parse_mode='Markdown')
+#                 await bot.forward_message(94026383, message.chat.id, message.message_id)  # some debug info
+#                 await bot.send_message(message.chat.id, strings[lang(message)]['error'])
                 if MIXPANEL_TOKEN:
                     mp.track(message.from_user.id, 'error', properties={'error': str(e)})
         return
