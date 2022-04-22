@@ -86,10 +86,12 @@ async def check_dimensions(message):
     if abs(message.video.height - message.video.width) not in {0, 1}:
         await bot.send_message(message.chat.id,
                                strings[lang(message)]['not_square'])
+        return False
     if message.video.height > MAX_DIMENSION or message.video.width > MAX_DIMENSION:
         await bot.send_message(message.chat.id,
                                strings[lang(message)]['dimensions_handler'])
-    return abs(message.video.height - message.video.width) in {0, 1}
+        return False
+    return True
 
 
 async def get_kb(user_id):
