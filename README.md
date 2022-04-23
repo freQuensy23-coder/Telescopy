@@ -5,3 +5,4 @@ Telegram Bot that converts square Videos to [Video Messages](https://telegram.or
 [@TelescopyBot](https://t.me/TelescopyBot)
 
 ![](https://github.com/Kylmakalle/Telescopy-example/blob/master/promoconverted.gif)
+
