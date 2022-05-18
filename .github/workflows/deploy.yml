@@ -50,7 +50,7 @@ jobs:
           fi
       - uses: actions/checkout@v2
       - name: Deploy with rsync
-        run: rsync -avz ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.DEPLOYMENT_PATH }}
+        run: rsync -avz --exclude='.git/' ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.DEPLOYMENT_PATH }}
       - name: docker login
         run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ${{ secrets.CR_RO_PAT }} | docker login ${{ env.DOCKER_REGISTRY }} -u ${{ env.DOCKER_USERNAME }} --password-stdin"
       - name: docker-compose up
