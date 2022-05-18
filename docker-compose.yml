@@ -2,14 +2,16 @@ version: '3'
 
 services:
   bot:
-    image: kylmakalle/telescopy:latest
+    image: ghcr.io/kylmakalle/telescopy:latest
     restart: always
     container_name: telescopy
     logging:
       options:
         max-size: "10M"
         max-file: "10"
-    restart: always
-    env_file: .env
+    environment:
+      TELEGRAM_TOKEN: $TELEGRAM_TOKEN
+      MIXPANEL_TOKEN: $MIXPANEL_TOKEN
+      CONNECTED_CHATS_JSON_URL: $CONNECTED_CHATS_JSON_URL
     labels:
       com.centurylinklabs.watchtower.enable: 'true'
