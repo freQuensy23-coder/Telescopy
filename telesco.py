@@ -8,6 +8,7 @@ import requests
 from aiogram import Bot, Dispatcher, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from async_lru import alru_cache
+from aiogram.utils.markdown import quote_html
 from mixpanel import Mixpanel
 
 from strings import strings
@@ -125,7 +126,7 @@ async def callback_buttons(call):
 @dp.message_handler(commands=['start'])
 async def welcome(message):
     await bot.send_message(message.chat.id, strings[lang(message)]['start'].format(
-        message.from_user.first_name, 'https://telegram.org/update'),
+        quote_html(message.from_user.first_name), 'https://telegram.org/update'),
                            parse_mode='HTML', disable_web_page_preview=True)
     if MIXPANEL_TOKEN:
         mp.track(message.from_user.id, 'start', properties={'language': message.from_user.language_code})
