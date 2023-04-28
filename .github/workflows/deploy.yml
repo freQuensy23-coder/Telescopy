@@ -3,7 +3,7 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - master
+      - DISABLED_FOR_NOW
 
   workflow_dispatch:
 
