@@ -57,7 +57,7 @@ def get_ttl_hash(seconds=3600):
 
 MAX_DIMENSION = 640
 MAX_DURATION = 60
-MAX_SIZE = 8389000
+MAX_SIZE = 48389000
 
 
 def lang(message):
